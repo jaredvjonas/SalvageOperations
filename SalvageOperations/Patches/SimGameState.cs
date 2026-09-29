@@ -143,32 +143,66 @@ namespace SalvageOperations.Patches
                 if (!stat.name.StartsWith("Item.MECHPART.") && !stat.name.StartsWith("Item.MechDef."))
                     continue;
 
-                var text = "";
-                var split = stat.name.Split('.');
-                var type = split[1];
-                var mechID = split[2];
-                var num = int.Parse(stat.value);
-
-                // resolve names directly: the [[DM.MechDefs[...]]] interpolation comes back blank
-                switch (type)
-                {
-                    case "MechDef":
-                        var chassisDef = sim.DataManager.ChassisDefs.Exists(mechID) ? sim.DataManager.ChassisDefs.Get(mechID) : null;
-                        var chassisMech = sim.DataManager.MechDefs.Exists(mechID.Replace("chassisdef", "mechdef")) ? sim.DataManager.MechDefs.Get(mechID.Replace("chassisdef", "mechdef")) : null;
-                        text = $"Added {chassisMech?.Description.UIName ?? chassisDef?.Description.UIName ?? mechID} to 'Mech storage";
-                        break;
-                    case "MECHPART":
-                        var partMech = sim.DataManager.MechDefs.Exists(mechID) ? sim.DataManager.MechDefs.Get(mechID) : null;
-                        var partName = partMech?.Description.UIName ?? mechID;
-                        if (num > 0)
-                            text = $"Added {num} {partName} Parts";
-                        else
-                            text = $"Removed {num * -1} {partName} Parts";
-                        break;
-                }
-
+                var text = DescribeStat(sim, stat.name, stat.value);
                 __result.Add(new ResultDescriptionEntry(new Text(
                     $"{prefix} {Interpolator.Interpolate(text, gameContext, false)}"), gameContext, stat.name));
+            }
+        }
+
+        // resolve names directly: the [[DM.MechDefs[...]]] interpolation comes back blank
+        internal static string DescribeStat(SimGameState sim, string statName, string value)
+        {
+            var split = statName.Split('.');
+            var type = split[1];
+            var mechID = split[2];
+            var num = int.Parse(value);
+
+            switch (type)
+            {
+                case "MechDef":
+                    var chassisDef = sim.DataManager.ChassisDefs.Exists(mechID) ? sim.DataManager.ChassisDefs.Get(mechID) : null;
+                    var chassisMech = sim.DataManager.MechDefs.Exists(mechID.Replace("chassisdef", "mechdef")) ? sim.DataManager.MechDefs.Get(mechID.Replace("chassisdef", "mechdef")) : null;
+                    return $"Added {chassisMech?.Description.UIName ?? chassisDef?.Description.UIName ?? mechID} to 'Mech storage";
+                case "MECHPART":
+                    var partMech = sim.DataManager.MechDefs.Exists(mechID) ? sim.DataManager.MechDefs.Get(mechID) : null;
+                    var partName = partMech?.Description.UIName ?? mechID;
+                    return num > 0 ? $"Added {num} {partName} Parts" : $"Removed {num * -1} {partName} Parts";
+            }
+            return "";
+        }
+    }
+
+    // CustomDeploy's prefix replaces BuildSimGameResults with its own copy that never calls
+    // BuildSimGameStatsResults, so the patch above never fires; relabel the finished entries here instead
+    [HarmonyPatch(typeof(SimGameState), "BuildSimGameResults", new[] { typeof(SimGameEventResult[]), typeof(GameContext), typeof(SimGameStatDescDef.DescriptionTense?), typeof(Pilot) })]
+    public static class SimGameState_BuildSimGameResults_Patch
+    {
+        public static void Postfix(List<ResultDescriptionEntry> __result, SimGameEventResult[] resultsList)
+        {
+            var sim = UnityGameInstance.BattleTechGame.Simulation;
+            if (sim == null || __result == null || resultsList == null)
+                return;
+            if (Main.Settings.DependsOnArgoUpgrade && !sim.PurchasedArgoUpgrades.Contains(Main.Settings.ArgoUpgrade))
+                return;
+
+            var values = new Dictionary<string, string>();
+            foreach (var result in resultsList)
+            {
+                if (result?.Stats == null)
+                    continue;
+                foreach (var stat in result.Stats)
+                    if (stat.name != null && (stat.name.StartsWith("Item.MECHPART.") || stat.name.StartsWith("Item.MechDef.")))
+                        values[stat.name] = stat.value;
+            }
+
+            if (values.Count == 0)
+                return;
+
+            foreach (var entry in __result)
+            {
+                if (entry?.statName == null || !values.TryGetValue(entry.statName, out var value))
+                    continue;
+                entry.Text = new Text($"• {SimGameState_BuildSimGameStatsResults_Patch.DescribeStat(sim, entry.statName, value)}\n");
             }
         }
     }
