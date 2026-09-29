@@ -75,15 +75,17 @@ namespace SalvageOperations
 
         private static List<MechDef> GetAllMatchingVariants(DataManager dataManager, string UIName)
         {
-            var MechWeight = ExcludedVariantHolder.Chassis.InitialTonnage;
+            // rated tonnage, not InitialTonnage: bare-chassis weight differs between Endo/Ferro/XL variants of the same 'Mech
+            var MechWeight = ExcludedVariantHolder.Chassis.Tonnage;
             var MechSpeed = ExcludedVariantHolder.Chassis.TopSpeed;
             var variants = new List<MechDef>();
             try
             {
+                // a disabled flag skips its check (it used to reject every variant)
                 dataManager.MechDefs
                     .Where(x => !string.IsNullOrEmpty(x.Value.Chassis.Description.UIName) && x.Value.Chassis.Description.UIName == UIName &&
-                    (Settings.MechsMustHaveSameMass && x.Value.Chassis.InitialTonnage == MechWeight)
-                    && (Settings.MechsMustHaveSameSpeed && x.Value.Chassis.TopSpeed == MechSpeed))
+                    (!Settings.MechsMustHaveSameMass || x.Value.Chassis.Tonnage == MechWeight)
+                    && (!Settings.MechsMustHaveSameSpeed || x.Value.Chassis.TopSpeed == MechSpeed))
                     .Do(x => variants.Add(x.Value)); // thanks harmony for the do extension method
             }
             catch
