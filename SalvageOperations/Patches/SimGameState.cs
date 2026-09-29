@@ -149,16 +149,21 @@ namespace SalvageOperations.Patches
                 var mechID = split[2];
                 var num = int.Parse(stat.value);
 
+                // resolve names directly: the [[DM.MechDefs[...]]] interpolation comes back blank
                 switch (type)
                 {
                     case "MechDef":
-                        text = $"Added [[DM.ChassisDefs[{mechID}],{{DM.ChassisDefs[{mechID}].Description.UIName}}]] to 'Mech storage";
+                        var chassisDef = sim.DataManager.ChassisDefs.Exists(mechID) ? sim.DataManager.ChassisDefs.Get(mechID) : null;
+                        var chassisMech = sim.DataManager.MechDefs.Exists(mechID.Replace("chassisdef", "mechdef")) ? sim.DataManager.MechDefs.Get(mechID.Replace("chassisdef", "mechdef")) : null;
+                        text = $"Added {chassisMech?.Description.UIName ?? chassisDef?.Description.UIName ?? mechID} to 'Mech storage";
                         break;
                     case "MECHPART":
+                        var partMech = sim.DataManager.MechDefs.Exists(mechID) ? sim.DataManager.MechDefs.Get(mechID) : null;
+                        var partName = partMech?.Description.UIName ?? mechID;
                         if (num > 0)
-                            text = $"Added {num} [[DM.MechDefs[{mechID}],{{DM.MechDefs[{mechID}].Description.UIName}}]] Parts";
+                            text = $"Added {num} {partName} Parts";
                         else
-                            text = $"Removed {num * -1} [[DM.MechDefs[{mechID}],{{DM.MechDefs[{mechID}].Description.UIName}}]] Parts";
+                            text = $"Removed {num * -1} {partName} Parts";
                         break;
                 }
 

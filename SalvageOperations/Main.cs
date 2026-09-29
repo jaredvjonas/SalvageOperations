@@ -320,17 +320,19 @@ namespace SalvageOperations
                         options[1] = options[0];
                         options[2] = tempOption;
 
+                        // mechDef here is the 4th-ranked variant, not the one that was shift-clicked
+                        var triggeredDef = simGame.DataManager.MechDefs.Get(TriggeredVariant);
                         options[0] = new SimGameEventOption
                         {
-                            Description = new BaseDescriptionDef(TriggeredVariant, $"Build the {mechDef.Description.UIName} ({mechParts[TriggeredVariant]} Parts)", TriggeredVariant, ""),
+                            Description = new BaseDescriptionDef(TriggeredVariant, $"Build the {triggeredDef.Description.UIName} ({mechParts[TriggeredVariant]} Parts)", TriggeredVariant, ""),
                             RequirementList = null,
                             ResultSets = new[]
                             {
                             new SimGameEventResultSet
                             {
-                                Description = new BaseDescriptionDef(TriggeredVariant, TriggeredVariant, $"You tell Yang that you want him to build the [[DM.MechDefs[{TriggeredVariant}],{{DM.MechDefs[{TriggeredVariant}].Description.UIName}}]] and his eyes light up. \"I can't wait to get started.\"\r\n\r\nHe starts to move behind the pile of scrap, then calls out, \"Oh, and don't forget to submit a work order to 'Ready' the 'Mech when you want to get started on the refit. Remember, the less pieces of this variant you gave me, the longer it will take to get to full working order.\"", ""),
+                                Description = new BaseDescriptionDef(TriggeredVariant, TriggeredVariant, $"You tell Yang that you want him to build the {triggeredDef.Description.UIName} and his eyes light up. \"I can't wait to get started.\"\r\n\r\nHe starts to move behind the pile of scrap, then calls out, \"Oh, and don't forget to submit a work order to 'Ready' the 'Mech when you want to get started on the refit. Remember, the less pieces of this variant you gave me, the longer it will take to get to full working order.\"", ""),
                                 Weight = 100,
-                                Results = GetBuildMechEventResult(simGame, mechDef)
+                                Results = GetBuildMechEventResult(simGame, triggeredDef)
                             }
                         }
                         };
@@ -350,7 +352,7 @@ namespace SalvageOperations
                     {
                         new SimGameEventResultSet
                         {
-                            Description = new BaseDescriptionDef(variant, variant, $"You tell Yang that you want him to build the [[DM.MechDefs[{variant}],{{DM.MechDefs[{variant}].Description.UIName}}]] and his eyes light up. \"I can't wait to get started.\"\r\n\r\nHe starts to move behind the pile of scrap, then calls out, \"Oh, and don't forget to submit a work order to 'Ready' the 'Mech when you want to get started on the refit. Remember, the less pieces of this variant you gave me, the longer it will take to get to full working order.\"", ""),
+                            Description = new BaseDescriptionDef(variant, variant, $"You tell Yang that you want him to build the {mechDef.Description.UIName} and his eyes light up. \"I can't wait to get started.\"\r\n\r\nHe starts to move behind the pile of scrap, then calls out, \"Oh, and don't forget to submit a work order to 'Ready' the 'Mech when you want to get started on the refit. Remember, the less pieces of this variant you gave me, the longer it will take to get to full working order.\"", ""),
                             Weight = 100,
                             Results = GetBuildMechEventResult(simGame, mechDef)
                         }
@@ -430,9 +432,9 @@ namespace SalvageOperations
 
             var eventString = "As you board, Yang asks for you to meet him in the 'Mech Bay. When you arrive, you find him grinning in front of a load of unidentifiable scrap.\r\n\r\n\"Commander, we don't have enough salvage from any single 'Mech to build ourselves a new one, but...\" He pauses dramatically. \"...I could cobble together the salvage from a couple related 'Mechs.\"\r\n\r\n\"What do you think?\" He grins like a kid in a candy shop. \"Which one should we build?\"";
             if (mechParts.Count == 1 && !Settings.VariantExceptions.Contains(highestVariant.Description.Id)) // we have only a single option
-                eventString = $"As you board, Yang asks for you to meet him in the 'Mech Bay. When you arrive, you find him grinning in front of a load of unidentifiable scrap.\r\n\r\n\"Commander, we've got enough salvage from the [[DM.MechDefs[{highestVariant}],{highestVariant.Description.UIName}]] to put it together.\" He pauses, rubbing his beard. \"But, we could save it to build another variant, later.\"\r\n\r\n\"What do you think?\" He grins like a kid in a candy shop. \"Should we build it?\"";
+                eventString = $"As you board, Yang asks for you to meet him in the 'Mech Bay. When you arrive, you find him grinning in front of a load of unidentifiable scrap.\r\n\r\n\"Commander, we've got enough salvage from the {highestVariant.Description.UIName} to put it together.\" He pauses, rubbing his beard. \"But, we could save it to build another variant, later.\"\r\n\r\n\"What do you think?\" He grins like a kid in a candy shop. \"Should we build it?\"";
             else if (mechParts.Count == 1 && Settings.VariantExceptions.Contains(highestVariant.Description.Id)) // We have an excluded mech as our option.
-                eventString = $"As you board, Yang asks for you to meet him in the 'Mech Bay. When you arrive, you find him grinning in front of a load of unidentifiable scrap.\r\n\r\n\"Commander, we've got enough salvage from the [[DM.MechDefs[{highestVariant}],{highestVariant.Description.UIName}]] to put it together.\" He pauses, absolutely giddy. \"This is a truly rare 'Mech - something I've always dreamed of working on!\"\r\n\r\n\"What do you think?\" He grins like a kid in a candy shop. \"Should we build it?\"";
+                eventString = $"As you board, Yang asks for you to meet him in the 'Mech Bay. When you arrive, you find him grinning in front of a load of unidentifiable scrap.\r\n\r\n\"Commander, we've got enough salvage from the {highestVariant.Description.UIName} to put it together.\" He pauses, absolutely giddy. \"This is a truly rare 'Mech - something I've always dreamed of working on!\"\r\n\r\n\"What do you think?\" He grins like a kid in a candy shop. \"Should we build it?\"";
             else if (highest >= defaultMechPartMax) // we have enough salvage to build a mech
                 eventString = "As you board, Yang asks for you to meet him in the 'Mech Bay. When you arrive, you find him grinning in front of a load of unidentifiable scrap.\r\n\r\n\"Commander, we've got enough salvage to build a 'Mech out completely, but...\" He pauses dramatically. \"...I could cobble together the salvage from a couple related 'Mechs if you wanted to build something else.\"\r\n\r\n\"What do you think?\" He grins like a kid in a candy shop. \"Which one should we build?\"";
 
