@@ -124,6 +124,11 @@ namespace SalvageOperations
             return GetAllMatchingVariants(dataManager, mechDef.Chassis.Description.UIName);
         }
 
+        private static string BuildGroupKey(MechDef mechDef)
+        {
+            return $"{mechDef.Chassis.Description.UIName}|{mechDef.Chassis.Tonnage}";
+        }
+
         public static string GetItemStatID(string id, string type)
         {
             return $"Item.{type}.{id}";
@@ -136,7 +141,8 @@ namespace SalvageOperations
             foreach (var mechID in SalvageFromContract.Keys)
             {
                 var mechDef = sim.DataManager.MechDefs.Get(mechID);
-                if (!HasBeenBuilt.ContainsKey(mechDef.Description.Name))
+                // one popup per assembly group: mechdef Name is per-variant in this install, so key on the grouping (UIName + rated tonnage)
+                if (!HasBeenBuilt.ContainsKey(BuildGroupKey(mechDef)))
                 {
                     ExcludedVariantHolder = mechDef;
                     TryBuildMechs(sim, new Dictionary<string, int> { { mechID, 1 } });
@@ -487,11 +493,9 @@ namespace SalvageOperations
             // add chassis pieces that we already have
             var matchingMechDefs = GetAllMatchingVariants(simGame.DataManager, UIName);
 
-            string mechName = "name";
             foreach (var mechDef in matchingMechDefs)
             {
                 chassisPieces[UIName] += GetMechParts(simGame, mechDef);
-                mechName = mechDef.Description.Name;
               //  Logger.Log(mechDef.Description.Id);
               //  Logger.Log(chassisPieces[UIName].ToString());
             }
@@ -503,13 +507,10 @@ namespace SalvageOperations
                 // has enough pieces to build a mech, generate popup
                 // Logger.Log($"Generating popup for {UIName}");
                 GenerateMechPopup(simGame, UIName);
-
-                if (!HasBeenBuilt.ContainsKey(mechName))
-                {
-                    HasBeenBuilt[mechName] = 1;
-                    // TestBuildAgain[UIName] = 1;
-                }
             }
+
+            // a popup's part removals are fixed when it is generated, so a second popup for the same group would build from the same parts twice
+            HasBeenBuilt[BuildGroupKey(ExcludedVariantHolder)] = 1;
         }
         public static void ConvertCompanyTags(bool newMech)
         {
