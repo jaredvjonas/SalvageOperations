@@ -124,7 +124,7 @@ namespace SalvageOperations
             return GetAllMatchingVariants(dataManager, mechDef.Chassis.Description.UIName);
         }
 
-        private static string BuildGroupKey(MechDef mechDef)
+        internal static string BuildGroupKey(MechDef mechDef)
         {
             return $"{mechDef.Chassis.Description.UIName}|{mechDef.Chassis.Tonnage}";
         }

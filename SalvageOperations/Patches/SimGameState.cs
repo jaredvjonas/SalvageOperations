@@ -100,7 +100,7 @@ namespace SalvageOperations.Patches
             {
 
                 var mechDef = __instance.DataManager.MechDefs.Get(mechID);
-                if (!Main.HasBeenBuilt.ContainsKey(mechDef.Description.Name))
+                if (!Main.HasBeenBuilt.ContainsKey(Main.BuildGroupKey(mechDef)))
                 {
                     Main.ExcludedVariantHolder = mechDef;
                     Main.TryBuildMechs(__instance, new Dictionary<string, int> { { mechID, 1 } });
